@@ -87,27 +87,6 @@
 
         console.log("QR:", decodedText);
 
-        // Đang xử lý → bỏ qua
-        if (isProcessing) {
-            console.log("Đang xử lý, bỏ qua scan");
-            return;
-        }
-
-        // Mã đã gửi trước đó → bỏ qua
-        if (scannedCodes.has(decodedText)) {
-            console.log("Mã đã tồn tại, không gửi:", decodedText);
-
-            document.getElementById("result").innerText =
-                "Mã đã quét trước đó: " + decodedText;
-
-            return;
-        }
-
-        // Khóa scan
-        isProcessing = true;
-
-        // Tạm dừng scanner
-        scanner.pause(true);
 
         // Hiển thị mã
         document.getElementById("result").innerText =
