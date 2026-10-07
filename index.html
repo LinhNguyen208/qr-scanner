@@ -1,157 +1,129 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>QR Scanner</title>
-
-    <script src="https://unpkg.com/html5-qrcode"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: auto;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        #reader {
-            width: 100%;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
-        }
-
-        .result-value {
-            margin-top: 10px;
-            padding: 12px;
-            background: #eee;
-            border-radius: 6px;
-            word-break: break-all;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="container">
-
-    <h1>QR Scanner</h1>
-    <div id="reader"></div>
-
-    <div class="result">
-        <strong>Kết quả:</strong>
-
-        <div id="result" class="result-value">
-            Chưa quét
-        </div>
-    </div>
-<div>Chọn máy</div>
-    <label><span>Máy 1</span><input class="pos" type="radio" name="pos" value="1" checked></label>
-    <label><span>Máy 2</span><input class="pos" type="radio" name="pos" value="2"></label>
-    <label><span>Máy 3</span><input class="pos" type="radio" name="pos" value="3"></label>
-    <label><span>Máy 4</span><input class="pos" type="radio" name="pos" value="4"></label>
-    
-</div>
-
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzK1NB3Qjpr-TZ70sAGeCk6oHvN3D11ES045sn6SP8cvMsQsZ98fqL8rrWLaJAEVR3c/exec";
-    const POS = document.querySelector(".pos:checked").value;
-    function onScanSuccess(decodedText, decodedResult) {
+
+    // Đang xử lý API
+    let isProcessing = false;
+
+    // Danh sách mã đã gửi thành công
+    const scannedCodes = new Set();
+
+    async function onScanSuccess(decodedText, decodedResult) {
 
         console.log("QR:", decodedText);
-        // document.getElementById("result").innerText = decodedText;
 
-        let isProcessing = false;
-const scannedCodes = new Set();
-
-async function handleScan(decodedText) {
-    // Đang xử lý mã khác
-    if (isProcessing) return;
-
-    // Mã đã scan trước đó
-    if (scannedCodes.has(decodedText)) {
-        console.log("Mã trùng, bỏ qua:", decodedText);
-        return;
-    }
-
-    isProcessing = true;
-    scanner.pause(true);
-
-    try {
-        
-            POS.map(el => el.value);
-
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                code: decodedText,
-                pos: POS
-            })
-        });
-
-        const result = await response.json();
-
-        console.log("API response:", result);
-
-        if (result.success) {
-            // Chỉ đánh dấu đã scan khi gửi thành công
-            scannedCodes.add(decodedText);
-
-            console.log("Đã gửi:", decodedText);
-        } else {
-            console.error("API lỗi:", result.message);
+        // Đang xử lý → bỏ qua
+        if (isProcessing) {
+            console.log("Đang xử lý, bỏ qua scan");
+            return;
         }
 
-    } catch (error) {
-        console.error("Lỗi:", error);
+        // Mã đã gửi trước đó → bỏ qua
+        if (scannedCodes.has(decodedText)) {
+            console.log("Mã đã tồn tại, không gửi:", decodedText);
 
-    } finally {
-        isProcessing = false;
-        scanner.resume();
+            document.getElementById("result").innerText =
+                "Mã đã quét trước đó: " + decodedText;
+
+            return;
+        }
+
+        // Khóa scan
+        isProcessing = true;
+
+        // Tạm dừng scanner
+        scanner.pause(true);
+
+        // Hiển thị mã
+        document.getElementById("result").innerText =
+            "Đang xử lý: " + decodedText;
+
+        try {
+
+            // Lấy máy đang được chọn
+            const selectedPos = document.querySelector(
+                '.pos:checked'
+            );
+
+            if (!selectedPos) {
+                throw new Error("Chưa chọn máy");
+            }
+
+            const POS = selectedPos.value;
+
+            console.log("Máy:", POS);
+            console.log("Mã:", decodedText);
+
+            // Gửi API
+            const response = await fetch(API_URL, {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    code: decodedText,
+                    pos: POS
+                })
+            });
+
+            // Kiểm tra HTTP
+            if (!response.ok) {
+                throw new Error(
+                    "HTTP Error: " + response.status
+                );
+            }
+
+            const result = await response.json();
+
+            console.log("API response:", result);
+
+            if (result.success) {
+
+                // Chỉ lưu mã khi API thành công
+                scannedCodes.add(decodedText);
+
+                document.getElementById("result").innerText =
+                    "✓ Đã gửi thành công\n" +
+                    "Mã: " + decodedText +
+                    "\nMáy: " + POS;
+
+            } else {
+
+                document.getElementById("result").innerText =
+                    "✗ API lỗi: " +
+                    (result.message || "Không xác định");
+            }
+
+        } catch (error) {
+
+            console.error("Lỗi:", error);
+
+            document.getElementById("result").innerText =
+                "✗ Lỗi gửi dữ liệu: " + error.message;
+
+        } finally {
+
+            // Mở khóa
+            isProcessing = false;
+
+            // Cho phép scan lại
+            scanner.resume();
+        }
     }
-}
 
-    })
-.then(response => response.json())
-.then(result => {
-  console.log(result);
-});
-
-    }
 
     function onScanFailure(error) {
-        // Không cần xử lý liên tục
+        // Không cần xử lý
     }
 
+
+    // Khởi tạo scanner
     const scanner = new Html5QrcodeScanner(
         "reader",
         {
             fps: 10,
+
             qrbox: {
                 width: 250,
                 height: 250
@@ -160,13 +132,10 @@ async function handleScan(decodedText) {
         false
     );
 
+
+    // Bắt đầu scanner
     scanner.render(
         onScanSuccess,
         onScanFailure
     );
-
-
 </script>
-
-</body>
-</html>
