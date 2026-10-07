@@ -83,12 +83,59 @@
         console.log("QR:", decodedText);
         // document.getElementById("result").innerText = decodedText;
 
-        fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({
-              code: decodedText,
-              pos: POS,
-          })
+        let isProcessing = false;
+const scannedCodes = new Set();
+
+async function handleScan(decodedText) {
+    // Đang xử lý mã khác
+    if (isProcessing) return;
+
+    // Mã đã scan trước đó
+    if (scannedCodes.has(decodedText)) {
+        console.log("Mã trùng, bỏ qua:", decodedText);
+        return;
+    }
+
+    isProcessing = true;
+    scanner.pause(true);
+
+    try {
+        
+            POS.map(el => el.value);
+
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: decodedText,
+                pos: POS
+            })
+        });
+
+        const result = await response.json();
+
+        console.log("API response:", result);
+
+        if (result.success) {
+            // Chỉ đánh dấu đã scan khi gửi thành công
+            scannedCodes.add(decodedText);
+
+            console.log("Đã gửi:", decodedText);
+        } else {
+            console.error("API lỗi:", result.message);
+        }
+
+    } catch (error) {
+        console.error("Lỗi:", error);
+
+    } finally {
+        isProcessing = false;
+        scanner.resume();
+    }
+}
+
     })
 .then(response => response.json())
 .then(result => {
