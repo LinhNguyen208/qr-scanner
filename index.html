@@ -86,7 +86,21 @@
     async function onScanSuccess(decodedText, decodedResult) {
 
         console.log("QR:", decodedText);
-        const isProcessing = true;
+        if (isProcessing) {
+            console.log("Đang xử lý, bỏ qua scan");
+            return;
+        }
+
+        // Mã đã gửi trước đó → bỏ qua
+        if (scannedCodes.has(decodedText)) {
+            console.log("Mã đã tồn tại, không gửi:", decodedText);
+
+            document.getElementById("result").innerText =
+                "Mã đã quét trước đó: " + decodedText;
+
+            return;
+        }
+        isProcessing = true;
         scanner.pause(true);
 
         // Hiển thị mã
