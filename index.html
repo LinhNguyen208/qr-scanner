@@ -77,7 +77,7 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzK1NB3Qjpr-TZ70sAGeCk6oHvN3D11ES045sn6SP8cvMsQsZ98fqL8rrWLaJAEVR3c/exec";
-    const POS = document.getElementByClassName("pos");
+    const POS = document.getElementsByClassName("pos");
     function onScanSuccess(decodedText, decodedResult) {
 
         console.log("QR:", decodedText);
